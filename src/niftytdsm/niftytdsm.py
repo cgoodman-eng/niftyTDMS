@@ -1,9 +1,9 @@
 #from nptdms import TdmsFile
 #tdms_file = TdmsFile.read("./Test_Log-20240731_122619.tdms")
 
-with open('./Test_Log-20240731_122619.tdms', 'rb') as file:
-    # Read the entire file into a bytes object
-    file_content = file.read()
+# with open('./Test_Log-20240731_122619.tdms', 'rb') as file:
+#     # Read the entire file into a bytes object
+#     file_content = file.read()
 
 
 class TdsmMaskSettings:
@@ -76,6 +76,6 @@ def ValidateTdsm(file_content):
   return tdsm_status, toc_mask_settings, version, segment_len, meta_len
 
 
-status, mask, ver, seg_len, meta_len = ValidateTdsm(file_content)
+# status, mask, ver, seg_len, meta_len = ValidateTdsm(file_content)
     
     
