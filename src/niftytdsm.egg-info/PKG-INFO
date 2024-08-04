@@ -1,10 +1,10 @@
 Metadata-Version: 2.1
 Name: niftytdsm
-Version: 0.0.1
+Version: 0.0.3
 Summary: A simple Python package
 Home-page: 
-Author: your name
-Author-email: your email
+Author: Charles Goodman
+Author-email: ...
 Project-URL: Bug Tracker, https://gitlab.com/codasteroid/basicpkg/-/issues
 Project-URL: repository, https://gitlab.com/codasteroid/basicpkg
 Classifier: Programming Language :: Python :: 3
