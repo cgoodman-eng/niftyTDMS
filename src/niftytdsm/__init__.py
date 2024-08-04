@@ -1,1 +1,1 @@
-from niftytdsm import *
+from .niftytdsm import *
