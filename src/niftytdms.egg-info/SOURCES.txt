@@ -1,0 +1,11 @@
+LICENSE.txt
+README.txt
+pyproject.toml
+setup.cfg
+src/niftytdms/__init__.py
+src/niftytdms/niftytdms.py
+src/niftytdms/niftytdms_dev.py
+src/niftytdms.egg-info/PKG-INFO
+src/niftytdms.egg-info/SOURCES.txt
+src/niftytdms.egg-info/dependency_links.txt
+src/niftytdms.egg-info/top_level.txt

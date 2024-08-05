@@ -1,12 +1,12 @@
 Metadata-Version: 2.1
-Name: niftytdsm
-Version: 0.0.4
-Summary: A simple Python package
-Home-page: 
+Name: niftytdms
+Version: 0.0.5
+Summary: Python package to read .tdms files
+Home-page: https://github.com/cgoodman-eng/niftyTDMS/
 Author: Charles Goodman
 Author-email: ...
-Project-URL: Bug Tracker, https://gitlab.com/codasteroid/basicpkg/-/issues
-Project-URL: repository, https://gitlab.com/codasteroid/basicpkg
+Project-URL: Bug Tracker, https://github.com/cgoodman-eng/niftyTDMS/issues/
+Project-URL: repository, https://github.com/cgoodman-eng/niftyTDMS/
 Classifier: Programming Language :: Python :: 3
 Classifier: License :: OSI Approved :: MIT License
 Classifier: Operating System :: OS Independent

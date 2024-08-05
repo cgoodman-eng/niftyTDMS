@@ -6,7 +6,7 @@
 #     file_content = file.read()
 
 
-class TdsmMaskSettings:
+class TdmsMaskSettings:
   def __init__(self):
     self.meta_in_seg        = False
     self.raw_data_in_seg    = False
@@ -25,7 +25,7 @@ class TdsmMaskSettings:
     return str_desc
 
 
-def TdsmExtractMaskSettings(mask):
+def TdmsExtractMaskSettings(mask):
   mask_meta_in_seg        = (1 << 1)
   mask_raw_data_in_seg    = (1 << 3)
   mask_Daqmx_data_in_seg  = (1 << 7)
@@ -33,7 +33,7 @@ def TdsmExtractMaskSettings(mask):
   mask_data_is_big_endian = (1 << 6)
   mask_new_obj_in_seg     = (1 << 2)
 
-  seg_mask_settings = TdsmMaskSettings()
+  seg_mask_settings = TdmsMaskSettings()
   if (mask & mask_meta_in_seg):
     seg_mask_settings.meta_in_seg = True
   if (mask & mask_raw_data_in_seg):
@@ -50,19 +50,19 @@ def TdsmExtractMaskSettings(mask):
   return seg_mask_settings
 
 
-def ValidateTdsm(file_content):
-  tdsm_status = True
+def ValidateTdms(file_content):
+  tdms_status = True
   toc_mask, version, segment_len, meta_len = 0, 0, 0, 0
 
-  valid_tdsm_tag  = b'\x54\x44\x53\x6D'
-  tdsm_tag        = file_content[:4]
-  if tdsm_tag != valid_tdsm_tag:
-    print("Invalid TDSM file: Tag is not valid")
-    tdsm_status = False
+  valid_tdms_tag  = b'\x54\x44\x53\x6D'
+  tdms_tag        = file_content[:4]
+  if tdms_tag != valid_tdms_tag:
+    print("Invalid tdms file: Tag is not valid")
+    tdms_status = False
 
   else:
-    toc_mask    = int.from_bytes(file_content[4:8], byteorder='little', signed=False)
-    toc_mask_settings = TdsmExtractMaskSettings(toc_mask)
+    toc_mask          = int.from_bytes(file_content[4:8], byteorder='little', signed=False)
+    toc_mask_settings = TdmsExtractMaskSettings(toc_mask)
     
     if toc_mask_settings.data_is_big_endian == 1:
       bite_order = 'big'    
@@ -73,9 +73,9 @@ def ValidateTdsm(file_content):
     segment_len = int.from_bytes(file_content[12:20], byteorder=bite_order, signed=False)
     meta_len    = int.from_bytes(file_content[20:28], byteorder=bite_order, signed=False)
 
-  return tdsm_status, toc_mask_settings, version, segment_len, meta_len
+  return tdms_status, toc_mask_settings, version, segment_len, meta_len
 
 
-# status, mask, ver, seg_len, meta_len = ValidateTdsm(file_content)
+# status, mask, ver, seg_len, meta_len = Validatetdms(file_content)
     
     
