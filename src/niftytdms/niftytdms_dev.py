@@ -4,10 +4,6 @@ import pprint
 from enum import Enum
 import struct
 
-with open('../../tests/Test_Log-20240731_122619.tdms', 'rb') as file:
-  # Read the entire file into a bytes object
-  file_content = file.read()
-
 
 # =================================================================================================
 # TDMS Data Types
@@ -65,10 +61,15 @@ class TdmsMaskSettings:
 
 class TDMSObject:
   def __init__(self):
-    self.path         = ""
-    self.raw_data_ind = 0
-    self.no_props     = 0
-    self.props        = {}
+    self.path           = ""
+    self.raw_data_ind   = 0
+    self.num_props      = 0
+    self.props          = {}
+    self.raw_data_type  = TdmsDataType.tdsTypeVoid
+    self.raw_data_dim   = 0
+    self.raw_data_len   = 0
+    self.raw_data_size  = 0
+
 
   def __str__(self):
     str_desc = ("Object Name: " + self.obj_name + "\n" +
@@ -79,14 +80,15 @@ class TDMSObject:
 
 class TdmsSegment:
   def __init__(self):
-    self.start        = 0
-    self.end          = 0
-    self.seg_len      = 0
-    self.seg_meta_len = 0
-    self.seg_path     = ""
-    self.no_obj       = 0
-    self.objs         = []
-    self.seg_sett     = None
+    self.version    = 0
+    self.start      = 0
+    self.end        = 0
+    self.len        = 0
+    self.meta_len   = 0
+    self.seg_path   = ""
+    self.num_objs   = 0
+    self.objs       = []
+    self.settings   = None
 
   def __str__(self):
     str_desc = ("Segment Name: " + self.segment_name + "\n" +
@@ -100,6 +102,18 @@ class TdmsFile:
     self.filepath = ""
     self.meta_data = {}
     self.data_frames = {}
+
+
+
+# =================================================================================================
+# TDMS Class/Enum Management Functions
+# =================================================================================================
+
+def TdsmDataLenIsVariable(tdms_datatype):
+  if tdms_datatype == TdmsDataType.tdsTypeString:
+    return True
+  else:
+    return False
 
 
 
@@ -250,63 +264,47 @@ def ValidateTdmsSegment(tdms_bytestream):
   return tdms_status, toc_mask_settings, version, segment_len, meta_len
 
 
-def QuickLoadSegment(tdms_bytestream, start_index):
-  seg = TdmsSegment()
-  seg.start = start_index
-  tdms_status, seg.seg_sett, version, seg.seg_len, seg.seg_meta_len = ValidateTdmsSegment(tdms_bytestream[start_index:])
-  seg.end = seg.start + seg.seg_len + 28
-
-  return seg
-
-
-def QuickLoadFile(tdms_bytestream):
-  segs = []
-  start_index = 0
-  while start_index < len(tdms_bytestream):
-    seg = QuickLoadSegment(tdms_bytestream, start_index)
-    segs.append(seg)
-    start_index = seg.end
-
-  return segs
-
-
-
 def LoadSegment(tdms_bytestream, start_index):
   seg = TdmsSegment()
   seg.start = start_index
-  tdms_status, seg.seg_sett, version, seg.seg_len, seg.seg_meta_len = ValidateTdmsSegment(tdms_bytestream[start_index:])
-  seg.end = seg.start + seg.seg_len + 28
-  print(f'Segment Length: {seg.seg_len}')
-  print(f'Segment Start: {seg.start}')
-  print(f'Segment End: {seg.end}')
+  tdms_status, seg.settings, seg.version, seg.len, seg.meta_len = ValidateTdmsSegment(tdms_bytestream[start_index:])
 
-  if tdms_status != True:
-    raise Exception("No TDMS segment found at given index")
+  if not tdms_status:
+    raise ValueError("TDMS segment not found at given index")
+  seg.end = seg.start + seg.len + 28
 
-  if seg.seg_sett.meta_in_seg:
+  if seg.settings.meta_in_seg:
     scan_ind = seg.start + 28   # header is 28 bytes long
-    seg.no_obj, scan_ind = TdmsExtractU32(tdms_bytestream, start_ind=scan_ind, endianness=seg.seg_sett.endianness)
-    print(f'Number of objects: {seg.no_obj}')
+    seg.num_objs, scan_ind = TdmsExtractU32(tdms_bytestream, start_ind=scan_ind, endianness=seg.settings.endianness)
+    print(f'Number of objects: {seg.num_objs}')
 
-    for i in range(seg.no_obj):
+    for i in range(seg.num_objs):
       print(f'\tObject {i+1}')
       obj = TDMSObject()
-      obj_path_len, scan_ind      = TdmsExtractU32(tdms_bytestream, start_ind=scan_ind, endianness=seg.seg_sett.endianness)
+      obj_path_len, scan_ind      = TdmsExtractU32(tdms_bytestream, start_ind=scan_ind, endianness=seg.settings.endianness)
       obj.path, scan_ind          = TdmsExtractString(tdms_bytestream, start_ind=scan_ind, str_len=obj_path_len)
       print(f'\tObject Path: {obj.path}')
-      obj.raw_data_ind, scan_ind  = TdmsExtractU32(tdms_bytestream, start_ind=scan_ind, endianness=seg.seg_sett.endianness)
-      print(f'\tRaw Data Index: {obj.raw_data_ind}')
-      obj.no_props, scan_ind      = TdmsExtractU32(tdms_bytestream, start_ind=scan_ind, endianness=seg.seg_sett.endianness)
-      print(f'\tNumber of Properties: {obj.no_props}')
+      obj.raw_data_ind, scan_ind  = TdmsExtractU32(tdms_bytestream, start_ind=scan_ind, endianness=seg.settings.endianness)
+      no_raw_data = 0xFFFFFFFF
+      if obj.raw_data_ind != no_raw_data and obj.raw_data_ind != 0:
+        obj.raw_data_type, scan_ind = TdmsExtractDataType(tdms_bytestream, start_ind=scan_ind, endianness=seg.settings.endianness)
+        obj.raw_data_dim, scan_ind  = TdmsExtractU32(tdms_bytestream, start_ind=scan_ind, endianness=seg.settings.endianness)
+        obj.raw_data_len, scan_ind  = TdmsExtractU64(tdms_bytestream, start_ind=scan_ind, endianness=seg.settings.endianness)
+        if TdsmDataLenIsVariable(obj.raw_data_type):
+          obj.raw_data_size, scan_ind = TdmsExtractU64(tdms_bytestream, start_ind=scan_ind, endianness=seg.settings.endianness)
 
-      for j in range(obj.no_props):
+      print(f'\tRaw Data Index: {obj.raw_data_ind}')
+      obj.num_props, scan_ind = TdmsExtractU32(tdms_bytestream, start_ind=scan_ind, endianness=seg.settings.endianness)
+      print(f'\tNumber of Properties: {obj.num_props}')
+
+      for j in range(obj.num_props):
         print(f'\t\tProperty {j+1}')
-        prop_name_len, scan_ind   = TdmsExtractU32(tdms_bytestream, start_ind=scan_ind, endianness=seg.seg_sett.endianness)
+        prop_name_len, scan_ind   = TdmsExtractU32(tdms_bytestream, start_ind=scan_ind, endianness=seg.settings.endianness)
         prop_name, scan_ind       = TdmsExtractString(tdms_bytestream, start_ind=scan_ind, str_len=prop_name_len)
         print(f'\t\tProperty Name: {prop_name}')
-        prop_datatype, scan_ind   = TdmsExtractDataType(tdms_bytestream, start_ind=scan_ind, endianness=seg.seg_sett.endianness)
+        prop_datatype, scan_ind   = TdmsExtractDataType(tdms_bytestream, start_ind=scan_ind, endianness=seg.settings.endianness)
         print(f'\t\tProperty Data Type: {prop_datatype}')
-        prop_value, scan_ind      = TdmsExtractAuto(prop_datatype, tdms_bytestream, start_ind=scan_ind, endianness=seg.seg_sett.endianness)
+        prop_value, scan_ind      = TdmsExtractAuto(prop_datatype, tdms_bytestream, start_ind=scan_ind, endianness=seg.settings.endianness)
         print(f'\t\tProperty Value: {prop_value}')
         obj.props[prop_name] = prop_value
       
@@ -315,8 +313,41 @@ def LoadSegment(tdms_bytestream, start_index):
     return seg
 
 
-status, mask, ver, seg_len, meta_len = ValidateTdmsSegment(file_content)
-seg1 = LoadSegment(file_content, 0)
+def LoadTdsmFile(filepath):
+  segments = []
+  with open(filepath, 'rb') as file:
+    file_content = file.read()
+  
+  seg_end = 0
+  
+  while seg_end < len(file_content):
+    seg = LoadSegment(file_content, seg_end)
+    segments.append(seg)
+    seg_end = seg.end
+  
+  return segments
+  
+with open('../../tests/Test_Log-20240731_122619.tdms', 'rb') as file:
+  file_content = file.read()
+
+seg_end = 0
+segments = []
+while seg_end < len(file_content):
+  seg = LoadSegment(file_content, seg_end)
+  segments.append(seg)
+  seg_end = seg.end
+
+obj_paths = []
+for seg in segments:
+  for obj in seg.objs:
+    obj_paths.append(obj.path)
+
+set_paths = set(obj_paths)
+
+
+
+# LoadTdsmFile('../../tests/Test_Log-20240731_122619.tdms')
+
 
     
     
